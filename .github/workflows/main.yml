@@ -18,22 +18,65 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Build & Publish bản CLI cho macOS (Apple Silicon & Intel)
+    - name: Build & Publish bản CLI cho macOS
       run: |
         dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -o ./publish-arm64
         dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -o ./publish-x64
 
-    - name: Cấp quyền thực thi và đóng gói ZIP
+    - name: Đóng gói thành file .app và tạo .dmg
       run: |
-        chmod +x ./publish-arm64/kittydy0
-        chmod +x ./publish-x64/kittydy0
-        zip -r KittyDy0Launcher-macOS-arm64.zip ./publish-arm64
-        zip -r KittyDy0Launcher-macOS-x64.zip ./publish-x64
+        for ARCH in arm64 x64; do
+          APP_DIR="dmg-$ARCH/KittyDy0Launcher.app"
+          mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
-    - name: Xuất file thành phẩm (Upload Artifact)
+          # Copy file thực thi và icon
+          cp "./publish-$ARCH/kittydy0" "$APP_DIR/Contents/MacOS/kittydy0-bin"
+          chmod +x "$APP_DIR/Contents/MacOS/kittydy0-bin"
+          if [ -f "KittyDy0Launcher/Assets/icon.png" ]; then
+            cp "KittyDy0Launcher/Assets/icon.png" "$APP_DIR/Contents/Resources/icon.png"
+          fi
+
+          # Tạo script khởi chạy mở cửa sổ Terminal khi nhấp đúp icon
+          cat << 'EOF' > "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
+        #!/bin/bash
+        DIR="$(cd "$(dirname "$0")" && pwd)"
+        osascript -e "tell application \"Terminal\" to do script \"'$DIR/kittydy0-bin'\""
+        osascript -e 'tell application "Terminal" to activate'
+        EOF
+          chmod +x "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
+
+          # Tạo file cấu hình ứng dụng Info.plist
+          cat << 'EOF' > "$APP_DIR/Contents/Info.plist"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>CFBundleExecutable</key>
+          <string>KittyDy0Launcher</string>
+          <key>CFBundleIdentifier</key>
+          <string>com.kittydy0.launcher</string>
+          <key>CFBundleName</key>
+          <string>KittyDy0Launcher</string>
+          <key>CFBundlePackageType</key>
+          <string>APPL</string>
+          <key>CFBundleShortVersionString</key>
+          <string>1.0</string>
+        </dict>
+        </plist>
+        EOF
+
+          # Ký Ad-hoc và tạo thư mục Applications shortcut bên trong DMG
+          codesign --force --deep --sign - "$APP_DIR"
+          ln -s /Applications "dmg-$ARCH/Applications"
+
+          # Đóng gói thành file .dmg bằng hdiutil
+          hdiutil create -volname "KittyDy0Launcher ($ARCH)" -srcfolder "dmg-$ARCH" -ov -format UDZO "KittyDy0Launcher-macOS-$ARCH.dmg"
+        done
+
+    - name: Xuất file .dmg (Upload Artifact)
       uses: actions/upload-artifact@v4
       with:
-        name: KittyDy0Launcher-macOS-Builds
+        name: KittyDy0Launcher-macOS-DMG
         path: |
-          KittyDy0Launcher-macOS-arm64.zip
-          KittyDy0Launcher-macOS-x64.zip
+          KittyDy0Launcher-macOS-arm64.dmg
+          KittyDy0Launcher-macOS-x64.dmg
