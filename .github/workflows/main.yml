@@ -25,8 +25,8 @@ jobs:
 
     - name: Cấp quyền thực thi và đóng gói ZIP
       run: |
-        chmod +x ./publish-arm64/KittyDy0Launcher.Cli
-        chmod +x ./publish-x64/KittyDy0Launcher.Cli
+        chmod +x ./publish-arm64/kittydy0
+        chmod +x ./publish-x64/kittydy0
         zip -r KittyDy0Launcher-macOS-arm64.zip ./publish-arm64
         zip -r KittyDy0Launcher-macOS-x64.zip ./publish-x64
 
