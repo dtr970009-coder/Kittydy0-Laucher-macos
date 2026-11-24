@@ -10,6 +10,12 @@ jobs:
     runs-on: macos-latest
 
     steps:
+    - name: Giải phóng dung lượng ổ đĩa trên runner macOS
+      run: |
+        sudo rm -rf /Applications/Xcode*.app /Library/Developer/CoreSimulator /Users/runner/Library/Caches/*
+        dotnet nuget locals all --clear || true
+        df -h
+
     - name: Tải mã nguồn về
       uses: actions/checkout@v4
 
@@ -36,12 +42,14 @@ jobs:
           rm -rf AppIcon.iconset
         fi
 
-    - name: Build & đóng gói tuần tự từng kiến trúc (tiết kiệm dung lượng)
+    - name: Build & đóng gói tuần tự từng kiến trúc
       run: |
+        export TMPDIR=/tmp
         for ARCH in arm64 x64; do
           dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-$ARCH --self-contained true -p:PublishSingleFile=true -o ./publish-$ARCH
 
-          APP_DIR="dmg-$ARCH/KittyDy0Launcher.app"
+          APP_DIR="/tmp/dmg-$ARCH/KittyDy0Launcher.app"
+          rm -rf "/tmp/dmg-$ARCH"
           mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
           cp "./publish-$ARCH/kittydy0" "$APP_DIR/Contents/MacOS/kittydy0-bin"
@@ -82,12 +90,12 @@ jobs:
         EOF
 
           codesign --force --deep --sign - "$APP_DIR"
-          ln -s /Applications "dmg-$ARCH/Applications"
+          ln -s /Applications "/tmp/dmg-$ARCH/Applications"
 
-          hdiutil create -volname "KittyDy0Launcher-$ARCH" -srcfolder "dmg-$ARCH" -ov -format UDZO "KittyDy0Launcher-macOS-$ARCH.dmg"
+          hdiutil create -volname "KittyDy0Launcher-$ARCH" -srcfolder "/tmp/dmg-$ARCH" -ov -format UDZO "KittyDy0Launcher-macOS-$ARCH.dmg"
 
-          # Dọn sạch thư mục tạm ngay sau khi nén xong từng bản DMG
-          rm -rf "dmg-$ARCH" KittyDy0Launcher.Cli/bin KittyDy0Launcher.Cli/obj KittyDy0Launcher.Core/bin KittyDy0Launcher.Core/obj
+          rm -rf "/tmp/dmg-$ARCH" KittyDy0Launcher.Cli/bin KittyDy0Launcher.Cli/obj KittyDy0Launcher.Core/bin KittyDy0Launcher.Core/obj
+          dotnet nuget locals all --clear || true
         done
 
     - name: Xuất file .dmg (Upload Artifact)
