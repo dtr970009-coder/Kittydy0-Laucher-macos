@@ -18,25 +18,40 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Build & Publish bản CLI cho macOS
+    - name: Chuyển đổi icon.png sang chuẩn .icns
       run: |
-        dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -o ./publish-arm64
-        dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -o ./publish-x64
+        if [ -f "KittyDy0Launcher/Assets/icon.png" ]; then
+          mkdir -p AppIcon.iconset
+          sips -z 16 16     KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_16x16.png
+          sips -z 32 32     KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_16x16@2x.png
+          sips -z 32 32     KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_32x32.png
+          sips -z 64 64     KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_32x32@2x.png
+          sips -z 128 128   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_128x128.png
+          sips -z 256 256   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_128x128@2x.png
+          sips -z 256 256   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_256x256.png
+          sips -z 512 512   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_256x256@2x.png
+          sips -z 512 512   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_512x512.png
+          sips -z 1024 1024 KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_512x512@2x.png
+          iconutil -c icns AppIcon.iconset -o AppIcon.icns
+          rm -rf AppIcon.iconset
+        fi
 
-    - name: Đóng gói thành file .app và tạo .dmg
+    - name: Build & đóng gói tuần tự từng kiến trúc (tiết kiệm dung lượng)
       run: |
         for ARCH in arm64 x64; do
+          dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-$ARCH --self-contained true -p:PublishSingleFile=true -o ./publish-$ARCH
+
           APP_DIR="dmg-$ARCH/KittyDy0Launcher.app"
           mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
-          # Copy file thực thi và icon
           cp "./publish-$ARCH/kittydy0" "$APP_DIR/Contents/MacOS/kittydy0-bin"
           chmod +x "$APP_DIR/Contents/MacOS/kittydy0-bin"
-          if [ -f "KittyDy0Launcher/Assets/icon.png" ]; then
-            cp "KittyDy0Launcher/Assets/icon.png" "$APP_DIR/Contents/Resources/icon.png"
+          rm -rf "./publish-$ARCH"
+
+          if [ -f "AppIcon.icns" ]; then
+            cp "AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
           fi
 
-          # Tạo script khởi chạy mở cửa sổ Terminal khi nhấp đúp icon
           cat << 'EOF' > "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
         #!/bin/bash
         DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -45,7 +60,6 @@ jobs:
         EOF
           chmod +x "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
 
-          # Tạo file cấu hình ứng dụng Info.plist
           cat << 'EOF' > "$APP_DIR/Contents/Info.plist"
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -53,6 +67,8 @@ jobs:
         <dict>
           <key>CFBundleExecutable</key>
           <string>KittyDy0Launcher</string>
+          <key>CFBundleIconFile</key>
+          <string>AppIcon</string>
           <key>CFBundleIdentifier</key>
           <string>com.kittydy0.launcher</string>
           <key>CFBundleName</key>
@@ -65,12 +81,13 @@ jobs:
         </plist>
         EOF
 
-          # Ký Ad-hoc và tạo thư mục Applications shortcut bên trong DMG
           codesign --force --deep --sign - "$APP_DIR"
           ln -s /Applications "dmg-$ARCH/Applications"
 
-          # Đóng gói thành file .dmg bằng hdiutil
-          hdiutil create -volname "KittyDy0Launcher ($ARCH)" -srcfolder "dmg-$ARCH" -ov -format UDZO "KittyDy0Launcher-macOS-$ARCH.dmg"
+          hdiutil create -volname "KittyDy0Launcher-$ARCH" -srcfolder "dmg-$ARCH" -ov -format UDZO "KittyDy0Launcher-macOS-$ARCH.dmg"
+
+          # Dọn sạch thư mục tạm ngay sau khi nén xong từng bản DMG
+          rm -rf "dmg-$ARCH" KittyDy0Launcher.Cli/bin KittyDy0Launcher.Cli/obj KittyDy0Launcher.Core/bin KittyDy0Launcher.Core/obj
         done
 
     - name: Xuất file .dmg (Upload Artifact)
