@@ -1,0 +1,75 @@
+name: Build macOS Launcher
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Cho phép bấm nút chạy thủ công bất cứ lúc nào
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Tải mã nguồn về
+      uses: actions/checkout@v4
+
+    - name: Cài đặt .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x' # Đổi thành 6.0.x, 7.0.x hoặc 9.0.x tùy theo project của bạn
+
+    - name: Build & Publish cho macOS (Apple Silicon & Intel)
+      run: |
+        # Thay KittyDy0Launcher/KittyDy0Launcher.csproj bằng đường dẫn file .csproj chính xác của bạn
+        dotnet publish KittyDy0Launcher/KittyDy0Launcher.csproj -c Release -r osx-arm64 --self-contained true -o ./publish-arm64
+        dotnet publish KittyDy0Launcher/KittyDy0Launcher.csproj -c Release -r osx-x64 --self-contained true -o ./publish-x64
+
+    - name: Đóng gói thành file ZIP
+      run: |
+        zip -r KittyDy0Launcher-macOS-arm64.zip ./publish-arm64
+        zip -r KittyDy0Launcher-macOS-x64.zip ./publish-x64
+
+    - name: Xuất file thành phẩm (Upload Artifact)
+      uses: actions/upload-artifact@v4
+      with:
+        name: KittyDy0Launcher-macOS-Builds
+        path: |
+          KittyDy0Launcher-macOS-arm64.zip
+          KittyDy0Launcher-macOS-x64.zipname: Build macOS Launcher
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Cho phép bấm nút chạy thủ công bất cứ lúc nào
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - name: Tải mã nguồn về
+      uses: actions/checkout@v4
+
+    - name: Cài đặt .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x' # Đổi thành 6.0.x, 7.0.x hoặc 9.0.x tùy theo project của bạn
+
+    - name: Build & Publish cho macOS (Apple Silicon & Intel)
+      run: |
+        # Thay KittyDy0Launcher/KittyDy0Launcher.csproj bằng đường dẫn file .csproj chính xác của bạn
+        dotnet publish KittyDy0Launcher/KittyDy0Launcher.csproj -c Release -r osx-arm64 --self-contained true -o ./publish-arm64
+        dotnet publish KittyDy0Launcher/KittyDy0Launcher.csproj -c Release -r osx-x64 --self-contained true -o ./publish-x64
+
+    - name: Đóng gói thành file ZIP
+      run: |
+        zip -r KittyDy0Launcher-macOS-arm64.zip ./publish-arm64
+        zip -r KittyDy0Launcher-macOS-x64.zip ./publish-x64
+
+    - name: Xuất file thành phẩm (Upload Artifact)
+      uses: actions/upload-artifact@v4
+      with:
+        name: KittyDy0Launcher-macOS-Builds
+        path: |
+          KittyDy0Launcher-macOS-arm64.zip
+          KittyDy0Launcher-macOS-x64.zip
