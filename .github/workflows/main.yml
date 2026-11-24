@@ -18,13 +18,15 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Build & Publish cho macOS (Apple Silicon & Intel)
+    - name: Build & Publish bản CLI cho macOS (Apple Silicon & Intel)
       run: |
-        dotnet publish KittyDy0Launcher/KittyDy0Launcher.csproj -c Release -r osx-arm64 --self-contained true -p:EnableWindowsTargeting=true -o ./publish-arm64
-        dotnet publish KittyDy0Launcher/KittyDy0Launcher.csproj -c Release -r osx-x64 --self-contained true -p:EnableWindowsTargeting=true -o ./publish-x64
+        dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -o ./publish-arm64
+        dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -o ./publish-x64
 
-    - name: Đóng gói thành file ZIP
+    - name: Cấp quyền thực thi và đóng gói ZIP
       run: |
+        chmod +x ./publish-arm64/KittyDy0Launcher.Cli
+        chmod +x ./publish-x64/KittyDy0Launcher.Cli
         zip -r KittyDy0Launcher-macOS-arm64.zip ./publish-arm64
         zip -r KittyDy0Launcher-macOS-x64.zip ./publish-x64
 
