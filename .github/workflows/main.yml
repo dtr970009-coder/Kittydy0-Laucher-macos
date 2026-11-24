@@ -6,16 +6,12 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  # JOB 1: Chạy trước - Build riêng cho chip Apple (M1/M2/M3/M4)
+  build-apple-silicon:
+    name: 1. Build Apple Silicon (arm64)
     runs-on: macos-latest
 
     steps:
-    - name: Giải phóng dung lượng ổ đĩa trên runner macOS
-      run: |
-        sudo rm -rf /Applications/Xcode*.app /Library/Developer/CoreSimulator /Users/runner/Library/Caches/*
-        dotnet nuget locals all --clear || true
-        df -h
-
     - name: Tải mã nguồn về
       uses: actions/checkout@v4
 
@@ -24,7 +20,7 @@ jobs:
       with:
         dotnet-version: '8.0.x'
 
-    - name: Chuyển đổi icon.png sang chuẩn .icns
+    - name: Tạo icon .icns
       run: |
         if [ -f "KittyDy0Launcher/Assets/icon.png" ]; then
           mkdir -p AppIcon.iconset
@@ -42,33 +38,29 @@ jobs:
           rm -rf AppIcon.iconset
         fi
 
-    - name: Build & đóng gói tuần tự từng kiến trúc
+    - name: Build & đóng gói DMG cho Apple Silicon
       run: |
-        export TMPDIR=/tmp
-        for ARCH in arm64 x64; do
-          dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-$ARCH --self-contained true -p:PublishSingleFile=true -o ./publish-$ARCH
+        dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -o ./publish-arm64
 
-          APP_DIR="/tmp/dmg-$ARCH/KittyDy0Launcher.app"
-          rm -rf "/tmp/dmg-$ARCH"
-          mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
+        APP_DIR="stage-arm64/KittyDy0Launcher.app"
+        mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 
-          cp "./publish-$ARCH/kittydy0" "$APP_DIR/Contents/MacOS/kittydy0-bin"
-          chmod +x "$APP_DIR/Contents/MacOS/kittydy0-bin"
-          rm -rf "./publish-$ARCH"
+        cp "./publish-arm64/kittydy0" "$APP_DIR/Contents/MacOS/kittydy0-bin"
+        chmod +x "$APP_DIR/Contents/MacOS/kittydy0-bin"
 
-          if [ -f "AppIcon.icns" ]; then
-            cp "AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
-          fi
+        if [ -f "AppIcon.icns" ]; then
+          cp "AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+        fi
 
-          cat << 'EOF' > "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
+        cat << 'EOF' > "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
         #!/bin/bash
         DIR="$(cd "$(dirname "$0")" && pwd)"
         osascript -e "tell application \"Terminal\" to do script \"'$DIR/kittydy0-bin'\""
         osascript -e 'tell application "Terminal" to activate'
         EOF
-          chmod +x "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
+        chmod +x "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
 
-          cat << 'EOF' > "$APP_DIR/Contents/Info.plist"
+        cat << 'EOF' > "$APP_DIR/Contents/Info.plist"
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
@@ -89,19 +81,100 @@ jobs:
         </plist>
         EOF
 
-          codesign --force --deep --sign - "$APP_DIR"
-          ln -s /Applications "/tmp/dmg-$ARCH/Applications"
+        codesign --force --deep --sign - "$APP_DIR"
+        ln -s /Applications "stage-arm64/Applications"
 
-          hdiutil create -volname "KittyDy0Launcher-$ARCH" -srcfolder "/tmp/dmg-$ARCH" -ov -format UDZO "KittyDy0Launcher-macOS-$ARCH.dmg"
+        hdiutil create -volname "KittyDy0Launcher-arm64" -srcfolder "stage-arm64" -ov -format UDZO "KittyDy0Launcher-macOS-arm64.dmg"
 
-          rm -rf "/tmp/dmg-$ARCH" KittyDy0Launcher.Cli/bin KittyDy0Launcher.Cli/obj KittyDy0Launcher.Core/bin KittyDy0Launcher.Core/obj
-          dotnet nuget locals all --clear || true
-        done
-
-    - name: Xuất file .dmg (Upload Artifact)
+    - name: Xuất file DMG Apple Silicon
       uses: actions/upload-artifact@v4
       with:
-        name: KittyDy0Launcher-macOS-DMG
-        path: |
-          KittyDy0Launcher-macOS-arm64.dmg
-          KittyDy0Launcher-macOS-x64.dmg
+        name: KittyDy0Launcher-macOS-arm64
+        path: KittyDy0Launcher-macOS-arm64.dmg
+
+  # JOB 2: Chạy sau khi Job 1 xong - Build riêng cho chip Intel (x64) trên máy ảo mới
+  build-intel:
+    name: 2. Build Intel (x64)
+    needs: build-apple-silicon
+    runs-on: macos-latest
+
+    steps:
+    - name: Tải mã nguồn về
+      uses: actions/checkout@v4
+
+    - name: Cài đặt .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Tạo icon .icns
+      run: |
+        if [ -f "KittyDy0Launcher/Assets/icon.png" ]; then
+          mkdir -p AppIcon.iconset
+          sips -z 16 16     KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_16x16.png
+          sips -z 32 32     KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_16x16@2x.png
+          sips -z 32 32     KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_32x32.png
+          sips -z 64 64     KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_32x32@2x.png
+          sips -z 128 128   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_128x128.png
+          sips -z 256 256   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_128x128@2x.png
+          sips -z 256 256   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_256x256.png
+          sips -z 512 512   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_256x256@2x.png
+          sips -z 512 512   KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_512x512.png
+          sips -z 1024 1024 KittyDy0Launcher/Assets/icon.png --out AppIcon.iconset/icon_512x512@2x.png
+          iconutil -c icns AppIcon.iconset -o AppIcon.icns
+          rm -rf AppIcon.iconset
+        fi
+
+    - name: Build & đóng gói DMG cho Intel
+      run: |
+        dotnet publish KittyDy0Launcher.Cli/KittyDy0Launcher.Cli.csproj -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -o ./publish-x64
+
+        APP_DIR="stage-x64/KittyDy0Launcher.app"
+        mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
+
+        cp "./publish-x64/kittydy0" "$APP_DIR/Contents/MacOS/kittydy0-bin"
+        chmod +x "$APP_DIR/Contents/MacOS/kittydy0-bin"
+
+        if [ -f "AppIcon.icns" ]; then
+          cp "AppIcon.icns" "$APP_DIR/Contents/Resources/AppIcon.icns"
+        fi
+
+        cat << 'EOF' > "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
+        #!/bin/bash
+        DIR="$(cd "$(dirname "$0")" && pwd)"
+        osascript -e "tell application \"Terminal\" to do script \"'$DIR/kittydy0-bin'\""
+        osascript -e 'tell application "Terminal" to activate'
+        EOF
+        chmod +x "$APP_DIR/Contents/MacOS/KittyDy0Launcher"
+
+        cat << 'EOF' > "$APP_DIR/Contents/Info.plist"
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>CFBundleExecutable</key>
+          <string>KittyDy0Launcher</string>
+          <key>CFBundleIconFile</key>
+          <string>AppIcon</string>
+          <key>CFBundleIdentifier</key>
+          <string>com.kittydy0.launcher</string>
+          <key>CFBundleName</key>
+          <string>KittyDy0Launcher</string>
+          <key>CFBundlePackageType</key>
+          <string>APPL</string>
+          <key>CFBundleShortVersionString</key>
+          <string>1.0</string>
+        </dict>
+        </plist>
+        EOF
+
+        codesign --force --deep --sign - "$APP_DIR"
+        ln -s /Applications "stage-x64/Applications"
+
+        hdiutil create -volname "KittyDy0Launcher-x64" -srcfolder "stage-x64" -ov -format UDZO "KittyDy0Launcher-macOS-x64.dmg"
+
+    - name: Xuất file DMG Intel
+      uses: actions/upload-artifact@v4
+      with:
+        name: KittyDy0Launcher-macOS-x64
+        path: KittyDy0Launcher-macOS-x64.dmg
