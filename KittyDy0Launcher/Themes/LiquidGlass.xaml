@@ -1,0 +1,294 @@
+<!--
+  Style và template cho hệ component Liquid Glass.
+  Màu, gradient, hiệu ứng lấy bằng DynamicResource từ skin (Skin.Glass.xaml / Skin.Flat.xaml)
+  nên đổi ON/OFF là cả giao diện đổi theo, không cần dựng lại control.
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:c="clr-namespace:KittyDy0Launcher.Controls">
+
+    <!-- ===== Bề mặt kính nhiều lớp ===== -->
+    <Style TargetType="{x:Type c:GlassSurface}">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type c:GlassSurface}">
+                    <Grid IsHitTestVisible="False" SnapsToDevicePixels="True">
+                        <!-- bóng đổ -->
+                        <Border x:Name="Shadow" CornerRadius="{TemplateBinding RenderRadius}"
+                                Background="{DynamicResource LgShadowCaster}" Effect="{DynamicResource LgShadow}"/>
+                        <!-- thấu kính khúc xạ: shader bẻ cong ảnh nền ở vành kính (chỉ khi HasDispersion) -->
+                        <c:GlassLens x:Name="Lens" CornerRadius="{TemplateBinding RenderRadius}"/>
+                        <!-- nền kính + viền phản chiếu -->
+                        <Border x:Name="Body" CornerRadius="{TemplateBinding RenderRadius}" BorderThickness="1"
+                                Background="{DynamicResource LgFill}" BorderBrush="{DynamicResource LgEdge}"/>
+                        <!-- bóng nhẹ phần đáy -->
+                        <Border x:Name="Shade" CornerRadius="{TemplateBinding RenderRadius}"
+                                Background="{DynamicResource LgInnerShade}" Visibility="{DynamicResource LgLayerVisibility}"/>
+                        <!-- gloss phía trên -->
+                        <Border x:Name="Gloss" CornerRadius="{TemplateBinding RenderRadius}"
+                                Background="{DynamicResource LgGloss}" Visibility="{DynamicResource LgLayerVisibility}"/>
+                        <!-- vệt sáng chuyển động nhẹ -->
+                        <Border x:Name="Sheen" CornerRadius="{TemplateBinding RenderRadius}" c:GlassFx.Sheen="True"
+                                Visibility="{DynamicResource LgLayerVisibility}"/>
+                        <!-- điểm sáng bám theo con trỏ (tâm do GlassSurface.MoveSpot cập nhật) -->
+                        <Border x:Name="Spot" CornerRadius="{TemplateBinding RenderRadius}"
+                                Opacity="{TemplateBinding SpotLevel}" Visibility="{DynamicResource LgLayerVisibility}"/>
+                        <!-- hover: viền sáng 100% + glow (độ mờ do GlassFx chạy animation) -->
+                        <Border x:Name="Hot" CornerRadius="{TemplateBinding RenderRadius}" BorderThickness="1"
+                                Opacity="{TemplateBinding HotLevel}" Background="{DynamicResource LgFillHover}"
+                                BorderBrush="{DynamicResource LgEdgeHot}" Effect="{DynamicResource LgGlow}"/>
+                        <!-- focus bàn phím -->
+                        <Border x:Name="Ring" CornerRadius="{TemplateBinding RenderRadius}" BorderThickness="2"
+                                Opacity="{TemplateBinding FocusLevel}" BorderBrush="{DynamicResource GoldBrush}"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsAccent" Value="True">
+                            <Setter TargetName="Body" Property="Background" Value="{DynamicResource LgPrimaryFill}"/>
+                            <Setter TargetName="Body" Property="BorderBrush" Value="{DynamicResource LgPrimaryEdge}"/>
+                            <Setter TargetName="Shadow" Property="Effect" Value="{DynamicResource LgPrimaryGlow}"/>
+                            <Setter TargetName="Hot" Property="Effect" Value="{DynamicResource LgPrimaryGlow}"/>
+                        </Trigger>
+                        <Trigger Property="HasDispersion" Value="False">
+                            <Setter TargetName="Lens" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <Trigger Property="HasShadow" Value="False">
+                            <Setter TargetName="Shadow" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Thẻ kính cho style GlassCard cũ (ContentControl thường) ===== -->
+    <ControlTemplate x:Key="LgCardTemplate" TargetType="ContentControl">
+        <Grid Background="Transparent">
+            <c:GlassSurface x:Name="PART_Surface" CornerRadius="20" HasDispersion="True"
+                            Opacity="{DynamicResource CardSurfaceOpacity}"/>
+            <ContentPresenter Margin="{TemplateBinding Padding}"/>
+        </Grid>
+    </ControlTemplate>
+
+    <!-- ===== Template cho LiquidGlassPanel / LiquidGlassCard ===== -->
+    <ControlTemplate x:Key="LgPanelTemplate" TargetType="{x:Type c:LiquidGlassPanel}">
+        <Grid Background="Transparent">
+            <c:GlassSurface x:Name="PART_Surface" CornerRadius="{TemplateBinding CornerRadius}"
+                            HasShadow="{TemplateBinding HasShadow}" HasDispersion="True"
+                            Opacity="{DynamicResource CardSurfaceOpacity}"/>
+            <ContentPresenter Margin="{TemplateBinding Padding}"/>
+        </Grid>
+    </ControlTemplate>
+
+    <!-- ===== Nút phụ (kính) ===== -->
+    <ControlTemplate x:Key="LgPillButtonTemplate" TargetType="Button">
+        <Grid x:Name="PART_Root" Background="Transparent" RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="PART_Scale"/>
+                    <TranslateTransform x:Name="PART_Lift"/>
+                </TransformGroup>
+            </Grid.RenderTransform>
+            <c:GlassSurface x:Name="PART_Surface" CornerRadius="24" HasShadow="False"/>
+            <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center"
+                              VerticalAlignment="Center" RecognizesAccessKey="True"/>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="PART_Root" Property="Opacity" Value="0.5"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- ===== Nút chính (vàng) ===== -->
+    <ControlTemplate x:Key="LgPrimaryButtonTemplate" TargetType="Button">
+        <Grid x:Name="PART_Root" Background="Transparent" RenderTransformOrigin="0.5,0.5">
+            <Grid.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="PART_Scale"/>
+                    <TranslateTransform x:Name="PART_Lift"/>
+                </TransformGroup>
+            </Grid.RenderTransform>
+            <c:GlassSurface x:Name="PART_Surface" CornerRadius="28" IsAccent="True"/>
+            <ContentPresenter Margin="24,14" HorizontalAlignment="Center" VerticalAlignment="Center"
+                              RecognizesAccessKey="True"/>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="PART_Root" Property="Opacity" Value="0.5"/>
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <!-- ===== Thanh trượt kính ===== -->
+    <ControlTemplate x:Key="LgSliderTemplate" TargetType="Slider">
+        <Grid Height="30" Background="Transparent">
+            <Border Height="8" CornerRadius="4" VerticalAlignment="Center" BorderThickness="1"
+                    Background="{DynamicResource LgInputFill}" BorderBrush="{DynamicResource LgInputEdge}"/>
+            <Track x:Name="PART_Track">
+                <Track.DecreaseRepeatButton>
+                    <RepeatButton Command="Slider.DecreaseLarge">
+                        <RepeatButton.Template>
+                            <ControlTemplate TargetType="RepeatButton">
+                                <Border Height="8" CornerRadius="4" Background="{DynamicResource GoldGradient}"
+                                        Effect="{DynamicResource LgPrimaryGlow}"/>
+                            </ControlTemplate>
+                        </RepeatButton.Template>
+                    </RepeatButton>
+                </Track.DecreaseRepeatButton>
+                <Track.IncreaseRepeatButton>
+                    <RepeatButton Command="Slider.IncreaseLarge">
+                        <RepeatButton.Template>
+                            <ControlTemplate TargetType="RepeatButton">
+                                <Border Height="8" Background="Transparent"/>
+                            </ControlTemplate>
+                        </RepeatButton.Template>
+                    </RepeatButton>
+                </Track.IncreaseRepeatButton>
+                <Track.Thumb>
+                    <Thumb Width="28" Height="28" Cursor="Hand" c:GlassFx.Interactive="True" c:GlassFx.PressScale="0.8">
+                        <Thumb.Template>
+                            <ControlTemplate TargetType="Thumb">
+                                <!-- Ấn xuống: núm bẹp theo chiều dọc và giãn ngang như giọt chất lỏng (GlassFx điều khiển PART_Scale) -->
+                                <Grid Background="Transparent" RenderTransformOrigin="0.5,0.5">
+                                    <Grid.RenderTransform>
+                                        <ScaleTransform x:Name="PART_Scale"/>
+                                    </Grid.RenderTransform>
+                                    <Ellipse Fill="{DynamicResource LgThumbFill}" Effect="{DynamicResource LgThumbShadow}"
+                                             Stroke="{DynamicResource LgThumbRim}" StrokeThickness="1.5"/>
+                                    <!-- điểm sáng phản chiếu -->
+                                    <Ellipse Width="11" Height="7" Fill="#B3FFFFFF" HorizontalAlignment="Left"
+                                             VerticalAlignment="Top" Margin="6,4,0,0"
+                                             Visibility="{DynamicResource LgLayerVisibility}"/>
+                                </Grid>
+                            </ControlTemplate>
+                        </Thumb.Template>
+                    </Thumb>
+                </Track.Thumb>
+            </Track>
+        </Grid>
+    </ControlTemplate>
+
+    <!-- ===== Nút chọn loại (Mods / Resource Pack / Modpack): kính, mục được chọn sáng vàng ===== -->
+    <Style x:Key="SegmentRadio" TargetType="RadioButton">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="22,9"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="c:GlassFx.Interactive" Value="True"/>
+        <Setter Property="c:GlassFx.PressScale" Value="0.96"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid Background="Transparent" RenderTransformOrigin="0.5,0.5">
+                        <Grid.RenderTransform>
+                            <ScaleTransform x:Name="PART_Scale"/>
+                        </Grid.RenderTransform>
+                        <c:GlassSurface x:Name="PART_Surface" CornerRadius="20" HasShadow="False"/>
+                        <Border x:Name="Sel" CornerRadius="20" Opacity="0" IsHitTestVisible="False"
+                                Background="{DynamicResource LgPrimaryFill}" Effect="{DynamicResource LgPrimaryGlow}"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center"
+                                          VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Sel" Property="Opacity" Value="1"/>
+                            <Setter Property="Foreground" Value="#1B0A0D"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ===== Style mặc định của 8 component ===== -->
+    <Style TargetType="{x:Type c:LiquidGlassPanel}">
+        <Setter Property="Padding" Value="20"/>
+        <Setter Property="Template" Value="{StaticResource LgPanelTemplate}"/>
+    </Style>
+
+    <Style TargetType="{x:Type c:LiquidGlassCard}">
+        <Setter Property="Padding" Value="20"/>
+        <Setter Property="c:GlassFx.Interactive" Value="True"/>
+        <Setter Property="Template" Value="{StaticResource LgPanelTemplate}"/>
+    </Style>
+
+    <Style TargetType="{x:Type c:LiquidGlassNavigation}">
+        <Setter Property="Padding" Value="4"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type c:LiquidGlassNavigation}">
+                    <Grid>
+                        <c:GlassSurface CornerRadius="22" HasShadow="False" HasDispersion="True"
+                                        Opacity="{DynamicResource NavSurfaceOpacity}"/>
+                        <ContentPresenter Margin="{TemplateBinding Padding}"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type c:LiquidGlassButton}">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="FontSize" Value="15"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Padding" Value="22,12"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="c:GlassFx.Interactive" Value="True"/>
+        <Setter Property="c:GlassFx.Lift" Value="-2"/>
+        <Setter Property="c:GlassFx.PressScale" Value="0.96"/>
+        <Setter Property="Template" Value="{StaticResource LgPillButtonTemplate}"/>
+        <Style.Triggers>
+            <Trigger Property="IsPrimary" Value="True">
+                <Setter Property="Foreground" Value="#1B0A0D"/>
+                <Setter Property="FontWeight" Value="ExtraBold"/>
+                <Setter Property="Template" Value="{StaticResource LgPrimaryButtonTemplate}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="{x:Type c:LiquidGlassSlider}">
+        <Setter Property="Template" Value="{StaticResource LgSliderTemplate}"/>
+    </Style>
+
+    <Style TargetType="{x:Type c:LiquidGlassToggle}">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="c:GlassFx.Interactive" Value="True"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type c:LiquidGlassToggle}">
+                    <Grid Background="Transparent" SnapsToDevicePixels="True">
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Width="48" Height="28" VerticalAlignment="Center">
+                                <c:GlassSurface x:Name="PART_Surface" CornerRadius="14" HasShadow="False"/>
+                                <!-- nền vàng hiện dần khi bật -->
+                                <Border x:Name="PART_OnFill" CornerRadius="14" Opacity="0"
+                                        Background="{DynamicResource LgPrimaryFill}"
+                                        Effect="{DynamicResource LgPrimaryGlow}"/>
+                                <!-- núm -->
+                                <Border Width="22" Height="22" CornerRadius="11" HorizontalAlignment="Left"
+                                        Margin="3,0,0,0" Background="#FFFDF4E3"
+                                        Effect="{DynamicResource LgThumbShadow}">
+                                    <Border.RenderTransform>
+                                        <TranslateTransform x:Name="PART_ThumbMove"/>
+                                    </Border.RenderTransform>
+                                </Border>
+                            </Grid>
+                            <ContentPresenter Margin="12,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="True"/>
+                        </StackPanel>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.5"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

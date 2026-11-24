@@ -1,0 +1,34 @@
+<!-- Skin DARK FLAT: nền đặc, viền mảnh, không blur/phản chiếu/bóng/animation nền. Cùng bộ key với Skin.Glass.xaml. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Visibility x:Key="LgLayerVisibility">Collapsed</Visibility>
+
+    <SolidColorBrush x:Key="WindowBg" Color="#161015"/>
+
+    <SolidColorBrush x:Key="LgFill" Color="#211920"/>
+    <SolidColorBrush x:Key="LgFillHover" Color="#14FFFFFF"/>
+    <SolidColorBrush x:Key="LgShadowCaster" Color="Transparent"/>
+
+    <SolidColorBrush x:Key="LgEdge" Color="#2EFFFFFF"/>
+    <SolidColorBrush x:Key="LgEdgeHot" Color="#99FFE57F"/>
+    <SolidColorBrush x:Key="LgGloss" Color="Transparent"/>
+    <SolidColorBrush x:Key="LgInnerShade" Color="Transparent"/>
+    <SolidColorBrush x:Key="LgThumbRim" Color="#66FFFFFF"/>
+
+    <!-- Không có hiệu ứng đổ bóng/glow -->
+    <x:Null x:Key="LgShadow"/>
+    <x:Null x:Key="LgGlow"/>
+    <x:Null x:Key="LgPrimaryGlow"/>
+    <x:Null x:Key="LgThumbShadow"/>
+
+    <SolidColorBrush x:Key="LgBubbleTint" Color="#FFB703"/>
+    <SolidColorBrush x:Key="LgPrimaryFill" Color="#FFB703"/>
+    <SolidColorBrush x:Key="LgPrimaryEdge" Color="#FFB703"/>
+
+    <SolidColorBrush x:Key="LgInputFill" Color="#33000000"/>
+    <SolidColorBrush x:Key="LgInputEdge" Color="#33FFFFFF"/>
+    <SolidColorBrush x:Key="LgPopupFill" Color="#FF261C24"/>
+    <SolidColorBrush x:Key="LgPopupEdge" Color="#55FFFFFF"/>
+    <SolidColorBrush x:Key="LgThumbFill" Color="#FFE57F"/>
+</ResourceDictionary>

@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Phần lõi dùng chung (không có giao diện): chạy được trên Windows, macOS và Linux.
+    Không copy code: các file dưới đây được LIÊN KẾT thẳng từ KittyDy0Launcher\Services,
+    nên sửa một chỗ thì bản Windows (WPF) và bản Mac đều nhận được.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>KittyDy0Launcher</RootNamespace>
+    <AssemblyName>KittyDy0Launcher.Core</AssemblyName>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Include="System.Net.Http" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
+    <PackageReference Include="CmlLib.Core" Version="4.*" />
+    <PackageReference Include="CmlLib.Core.Auth.Microsoft" Version="3.*" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\KittyDy0Launcher\Services\AppConfig.cs" Link="Services\AppConfig.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\AppPaths.cs" Link="Services\AppPaths.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\CrashLog.cs" Link="Services\CrashLog.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\ElyByAuth.cs" Link="Services\ElyByAuth.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\GameRunner.cs" Link="Services\GameRunner.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\Instance.cs" Link="Services\Instance.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\InstanceStore.cs" Link="Services\InstanceStore.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\JavaManager.cs" Link="Services\JavaManager.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\LoaderInstaller.cs" Link="Services\LoaderInstaller.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\MicrosoftAuth.cs" Link="Services\MicrosoftAuth.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\ModBrowser.cs" Link="Services\ModBrowser.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\ModpackInstaller.cs" Link="Services\ModpackInstaller.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\NavDock.cs" Link="Services\NavDock.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\Platform.cs" Link="Services\Platform.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\SecureStore.cs" Link="Services\SecureStore.cs" />
+    <Compile Include="..\KittyDy0Launcher\Services\VersionCatalog.cs" Link="Services\VersionCatalog.cs" />
+  </ItemGroup>
+
+</Project>
